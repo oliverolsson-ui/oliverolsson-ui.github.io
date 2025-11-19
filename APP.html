@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daglig Inventering</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Scrollbar for smooth aesthetics */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        
+        /* Animation classes */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .thinking-pulse {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        /* Tap highlight removal for mobile */
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="flex-none bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center shadow-md z-10">
+        <h1 class="text-xl font-semibold text-slate-100 tracking-wide">Kvällsinventering</h1>
+        <div id="currentDate" class="text-sm text-slate-400"></div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="mainContainer" class="flex-1 overflow-y-auto p-4 pb-24 relative">
+        <!-- Views will be injected here via JavaScript -->
+    </main>
+
+    <!-- Floating Action Button (FAB) for New Entry -->
+    <button onclick="app.showForm()" id="fab" class="fixed bottom-20 right-6 bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-full shadow-lg shadow-indigo-900/50 transition-transform transform hover:scale-105 active:scale-95 z-20 hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+    </button>
+
+    <!-- Bottom Navigation -->
+    <nav class="flex-none bg-slate-800 border-t border-slate-700 flex justify-around items-center h-16 z-10 safe-area-pb">
+        <button onclick="app.navigate('home')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-white active:text-indigo-400 transition-colors" data-target="home">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span class="text-xs">Hem</span>
+        </button>
+        <button onclick="app.navigate('history')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-white active:text-indigo-400 transition-colors" data-target="history">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span class="text-xs">Historik</span>
+        </button>
+        <button onclick="app.navigate('settings')" class="nav-btn flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-white active:text-indigo-400 transition-colors" data-target="settings">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span class="text-xs">Inställningar</span>
+        </button>
+    </nav>
+
+    <!-- Hidden File Input for Import -->
+    <input type="file" id="importInput" style="display: none;" onchange="app.handleImport(this)" accept=".json, .txt">
+
+    <!-- AI Modal -->
+    <div id="aiModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-slate-800 rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl border border-indigo-500/30">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-indigo-900/20 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span>✨</span> AI-Reflektion
+                </h3>
+                <button onclick="app.closeAiModal()" class="text-slate-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="aiContent" class="p-6 overflow-y-auto text-slate-200 whitespace-pre-wrap leading-relaxed text-sm">
+                <!-- Content goes here -->
+            </div>
+            <div class="p-4 border-t border-slate-700 bg-slate-900/50 rounded-b-2xl">
+                <button onclick="app.closeAiModal()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Stäng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-full shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none z-50 font-medium whitespace-nowrap">
+        Sparat!
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const questions = [
+            { id: 'q1', text: "Har jag harmats?", placeholder: "Var jag arg, irriterad eller bitter?" },
+            { id: 'q2', text: "Varit självisk?", placeholder: "Satte jag mina behov före andras på ett orättvist sätt?" },
+            { id: 'q3', text: "Varit oärlig?", placeholder: "Ljugit, överdrivit eller undanhållit sanningen?" },
+            { id: 'q4', text: "Varit rädd?", placeholder: "Lät jag rädsla styra mina handlingar?" },
+            { id: 'q5', text: "Skyldig nån en ursäkt?", placeholder: "Har jag sårat någon?" },
+            { id: 'q6', text: "Har jag behållit nånting för mig själv som jag genast borde diskuterat med någon annan?", placeholder: "Hemligheter eller känslor jag burit på?" },
+            { id: 'q7', text: "Vänlig o kärleksfull mot alla?", placeholder: "Hur bemötte jag min omgivning?" },
+            { id: 'q8', text: "Vad kunde jag gjort bättre?", placeholder: "Finns det något jag vill ändra på till imorgon?" },
+            { id: 'q9', text: "Tänkte jag på mig själv största delen av tiden?", placeholder: "Var jag självupptagen?" },
+            { id: 'q10', text: "Tänkte jag på vad jag kunde göra för andra, hur jag kunde bidra till livets flod?", placeholder: "Hur var jag till nytta idag?" }
+        ];
+
+        const app = {
+            data: {},
+            apiKey: '',
+            currentView: 'home',
+            
+            init() {
+                // Load data from localStorage
+                const storedData = localStorage.getItem('dailyInventoryData');
+                if (storedData) {
+                    this.data = JSON.parse(storedData);
+                }
+
+                // Load API Key
+                const storedKey = localStorage.getItem('geminiApiKey');
+                if (storedKey) {
+                    this.apiKey = storedKey;
+                }
+
+                // Set date in header
+                const options = { weekday: 'long', day: 'numeric', month: 'long' };
+                document.getElementById('currentDate').textContent = new Date().toLocaleDateString('sv-SE', options);
+
+                this.navigate('home');
+            },
+
+            saveData() {
+                localStorage.setItem('dailyInventoryData', JSON.stringify(this.data));
+            },
+
+            saveApiKey(key) {
+                this.apiKey = key.trim();
+                localStorage.setItem('geminiApiKey', this.apiKey);
+                this.showToast("API-nyckel sparad");
+            },
+
+            getTodayKey() {
+                return new Date().toISOString().split('T')[0];
+            },
+
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.remove('opacity-0');
+                setTimeout(() => toast.classList.add('opacity-0'), 2500);
+            },
+
+            navigate(view) {
+                this.currentView = view;
+                const container = document.getElementById('mainContainer');
+                const fab = document.getElementById('fab');
+                
+                // Update Active Nav State
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    const target = btn.getAttribute('data-target');
+                    if(view === target || (view.startsWith('details') && target === 'history')) {
+                        btn.classList.add('text-indigo-400');
+                        btn.classList.remove('text-slate-400');
+                    } else {
+                        btn.classList.remove('text-indigo-400');
+                        btn.classList.add('text-slate-400');
+                    }
+                });
+
+                container.innerHTML = '';
+                window.scrollTo(0, 0);
+
+                if (view === 'home') {
+                    this.renderHome(container);
+                    fab.classList.remove('hidden');
+                } else if (view === 'form') {
+                    this.renderForm(container);
+                    fab.classList.add('hidden');
+                } else if (view === 'history') {
+                    this.renderHistory(container);
+                    fab.classList.remove('hidden');
+                } else if (view.startsWith('details:')) {
+                    const dateKey = view.split(':')[1];
+                    this.renderDetails(container, dateKey);
+                    fab.classList.add('hidden');
+                } else if (view === 'settings') {
+                    this.renderSettings(container);
+                    fab.classList.add('hidden');
+                }
+            },
+
+            renderHome(container) {
+                const today = this.getTodayKey();
+                const hasEntryToday = !!this.data[today];
+
+                let html = `
+                    <div class="fade-in space-y-6">
+                        <div class="bg-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 text-center">
+                            <h2 class="text-2xl font-bold text-white mb-2">Välkommen</h2>
+                            <p class="text-slate-400 mb-6">Dags att stanna upp och reflektera över dagen som gått.</p>
+                            
+                            ${hasEntryToday 
+                                ? `<div class="bg-emerald-900/20 border border-emerald-700/30 p-6 rounded-xl mb-6">
+                                    <div class="flex justify-center mb-3">
+                                        <div class="h-12 w-12 rounded-full bg-emerald-600/20 flex items-center justify-center text-emerald-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <p class="text-emerald-100 italic leading-relaxed text-lg font-medium mb-2">
+                                        "När vi är färdiga med vår tillbakablick, ber vi Gud om förlåtelse och frågar vad vi bör vidta för åtgärder för att bättra oss."
+                                    </p>
+                                   </div>
+                                   <button onclick="app.navigate('details:${today}')" class="text-sm text-indigo-400 hover:text-indigo-300 flex items-center justify-center gap-2 mx-auto py-2 px-4 hover:bg-slate-700/50 rounded-lg transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Granska dagens svar
+                                   </button>`
+                                : `<button onclick="app.showForm()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-4 px-6 rounded-xl shadow-lg shadow-indigo-900/50 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                    Starta Inventering
+                                   </button>`
+                            }
+                        </div>
+
+                        <div class="mt-8">
+                            <h3 class="text-lg font-semibold text-slate-300 mb-4 px-2">Citat för reflektion</h3>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border-l-4 border-indigo-500 italic text-slate-400">
+                                "Det outforskade livet är inte värt att leva."
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML = html;
+            },
+
+            showForm() {
+                this.navigate('form');
+            },
+
+            renderForm(container) {
+                const today = this.getTodayKey();
+                const existingData = this.data[today] || {};
+
+                let formHtml = `
+                    <div class="fade-in max-w-lg mx-auto pb-10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-2xl font-bold text-white">Dagens frågor</h2>
+                            <button onclick="app.navigate('home')" class="text-slate-400 hover:text-white">Avbryt</button>
+                        </div>
+                        <form id="inventoryForm" onsubmit="app.handleFormSubmit(event)">
+                `;
+
+                questions.forEach((q, index) => {
+                    const val = existingData[q.id] || '';
+                    formHtml += `
+                        <div class="mb-8 bg-slate-800 p-5 rounded-xl border border-slate-700 shadow-sm">
+                            <label class="block text-lg font-medium text-indigo-200 mb-3 leading-tight">
+                                ${index + 1}. ${q.text}
+                            </label>
+                            <textarea 
+                                name="${q.id}" 
+                                class="w-full bg-slate-900 text-slate-100 rounded-lg p-3 border border-slate-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all h-24 placeholder-slate-600 resize-none"
+                                placeholder="${q.placeholder}"
+                            >${val}</textarea>
+                        </div>
+                    `;
+                });
+
+                formHtml += `
+                            <div class="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur-md border-t border-slate-700 z-30 flex justify-center">
+                                <button type="submit" class="w-full max-w-md bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform active:scale-95 transition-all">
+                                    Spara Inventering
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                `;
+
+                container.innerHTML = formHtml;
+            },
+
+            handleFormSubmit(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const entry = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    entry[key] = value.trim();
+                }
+
+                entry.timestamp = new Date().toISOString();
+                
+                const today = this.getTodayKey();
+                this.data[today] = entry;
+                this.saveData();
+                
+                this.showToast("Sparat!");
+                this.navigate('home');
+            },
+
+            renderHistory(container) {
+                const dates = Object.keys(this.data).sort().reverse();
+
+                if (dates.length === 0) {
+                    container.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-64 text-slate-500 fade-in">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <p>Inga inlägg än.</p>
+                        </div>`;
+                    return;
+                }
+
+                let listHtml = `
+                    <div class="fade-in max-w-lg mx-auto">
+                        <h2 class="text-2xl font-bold text-white mb-6">Tidigare inlägg</h2>
+                        <div class="space-y-3">
+                `;
+
+                dates.forEach(date => {
+                    const entry = this.data[date];
+                    const dateObj = new Date(date);
+                    const dateStr = dateObj.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'long' });
+                    let snippet = "Klicka för att läsa...";
+                    for(let q of questions) {
+                        if(entry[q.id] && entry[q.id].length > 0) {
+                            snippet = entry[q.id].substring(0, 40) + "...";
+                            break;
+                        }
+                    }
+
+                    listHtml += `
+                        <div onclick="app.navigate('details:${date}')" class="bg-slate-800 hover:bg-slate-750 p-4 rounded-xl border border-slate-700 cursor-pointer active:bg-slate-700 transition-colors">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-semibold text-indigo-300 capitalize">${dateStr}</h3>
+                                    <p class="text-slate-400 text-sm mt-1">${snippet}</p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listHtml += `</div></div>`;
+                container.innerHTML = listHtml;
+            },
+
+            renderDetails(container, dateKey) {
+                const entry = this.data[dateKey];
+                if (!entry) return;
+
+                const dateObj = new Date(dateKey);
+                const headerDate = dateObj.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+                let html = `
+                    <div class="fade-in max-w-lg mx-auto pb-10">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-2">
+                                <button onclick="app.navigate('history')" class="p-2 bg-slate-800 rounded-full text-slate-300 hover:text-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </button>
+                                <h2 class="text-xl font-bold text-white capitalize truncate max-w-[160px] sm:max-w-[300px]">${headerDate}</h2>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="app.getAiReflection('${dateKey}')" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white p-2 rounded-lg shadow-md active:scale-95 transition-all flex items-center gap-2 text-sm font-bold border border-indigo-400/30">
+                                    <span>✨</span>
+                                    <span class="hidden sm:inline">AI-Reflektion</span>
+                                </button>
+                                <button onclick="app.copyEntry('${dateKey}')" class="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg shadow-md active:scale-95 transition-all flex items-center gap-2 text-sm font-medium">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-6">
+                `;
+
+                let hasAnswers = false;
+
+                questions.forEach(q => {
+                    const answer = entry[q.id];
+                    if (answer && answer.trim() !== '') {
+                        hasAnswers = true;
+                        html += `
+                            <div class="bg-slate-800/50 p-5 rounded-xl border border-slate-700/50">
+                                <h4 class="text-indigo-300 text-sm font-semibold uppercase tracking-wider mb-2">${q.text}</h4>
+                                <p class="text-slate-200 whitespace-pre-wrap leading-relaxed">${answer}</p>
+                            </div>
+                        `;
+                    }
+                });
+
+                if (!hasAnswers) {
+                    html += `<p class="text-center text-slate-500 py-10">Inga svar registrerade för detta datum.</p>`;
+                }
+                
+                // Allow edit if it's today
+                if (dateKey === this.getTodayKey()) {
+                     html += `
+                        <div class="mt-8 text-center">
+                            <button onclick="app.showForm()" class="text-indigo-400 underline">Redigera dagens svar</button>
+                        </div>
+                     `;
+                }
+
+                html += `</div></div>`;
+                container.innerHTML = html;
+            },
+
+            copyEntry(dateKey) {
+                const entry = this.data[dateKey];
+                if (!entry) return;
+
+                const dateObj = new Date(dateKey);
+                const dateStr = dateObj.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' });
+                
+                let textToCopy = `Inventering ${dateStr}\n\n`;
+
+                questions.forEach(q => {
+                    const answer = entry[q.id];
+                    if (answer && answer.trim() !== '') {
+                        textToCopy += `*${q.text}*\n${answer.trim()}\n\n`;
+                    }
+                });
+
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        this.showToast("Kopierad till urklipp!");
+                    } else {
+                        this.showToast("Kunde inte kopiera.");
+                    }
+                } catch (err) {
+                    console.error('Kopiering misslyckades', err);
+                    this.showToast("Fel vid kopiering.");
+                }
+                document.body.removeChild(textArea);
+            },
+
+            async getAiReflection(dateKey) {
+                if(!this.apiKey) {
+                    alert("Du behöver ange en API-nyckel i Inställningar först.");
+                    this.navigate('settings');
+                    return;
+                }
+
+                const entry = this.data[dateKey];
+                if (!entry) return;
+
+                const modal = document.getElementById('aiModal');
+                const content = document.getElementById('aiContent');
+                
+                modal.classList.remove('hidden');
+                content.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-indigo-300">
+                    <svg class="animate-spin h-8 w-8 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="thinking-pulse">AI analyserar din dag...</span>
+                </div>`;
+
+                // Construct prompt
+                let prompt = `Agera som en vis, empatisk och icke-dömande mentor/sponsor inom tolvstegsprogrammet eller stoicism. 
+                Här är min dagliga inventering: \n\n`;
+                
+                questions.forEach(q => {
+                    const ans = entry[q.id];
+                    if(ans && ans.trim()) {
+                        prompt += `Fråga: ${q.text}\nSvar: ${ans}\n\n`;
+                    }
+                });
+
+                prompt += `Ge mig en kort reflektion baserat på detta. Lyft fram något positivt jag gjorde, men ge mig också 1-2 varsamma men konkreta råd för hur jag kan hantera morgondagen bättre baserat på mina brister idag. Svara på svenska. Håll det kort och koncist (max 150 ord).`;
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${this.apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if(result.error) {
+                        throw new Error(result.error.message);
+                    }
+
+                    const aiText = result.candidates[0].content.parts[0].text;
+                    content.innerHTML = aiText;
+
+                } catch (error) {
+                    content.innerHTML = `<div class="text-red-400 text-center">
+                        <p class="font-bold mb-2">Något gick fel.</p>
+                        <p class="text-sm">${error.message}</p>
+                        <p class="text-xs mt-4 text-slate-500">Kontrollera din API-nyckel i inställningar.</p>
+                    </div>`;
+                }
+            },
+
+            closeAiModal() {
+                document.getElementById('aiModal').classList.add('hidden');
+            },
+
+            renderSettings(container) {
+                container.innerHTML = `
+                    <div class="fade-in max-w-lg mx-auto space-y-6">
+                        <h2 class="text-2xl font-bold text-white mb-6">Data & Inställningar</h2>
+                        
+                         <!-- API KEY SECTION -->
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-indigo-500/30 shadow-lg relative overflow-hidden">
+                            <div class="absolute top-0 right-0 -mt-2 -mr-2 w-16 h-16 bg-indigo-500/20 rounded-full blur-xl"></div>
+                            <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                                <span>✨</span> Gemini AI (Valfritt)
+                            </h3>
+                            <p class="text-slate-400 text-sm mb-4">För att använda AI-reflektion behöver du en API-nyckel från Google (gratis).</p>
+                            <input type="password" id="apiKeyInput" value="${this.apiKey}" placeholder="Klistra in din API-nyckel här" 
+                                class="w-full bg-slate-900 text-slate-100 rounded-lg p-3 border border-slate-600 focus:border-indigo-500 outline-none mb-3 text-sm">
+                            <button onclick="app.saveApiKey(document.getElementById('apiKeyInput').value)" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 px-4 rounded-xl transition-colors font-medium text-sm">
+                                Spara API-nyckel
+                            </button>
+                            <div class="mt-3 text-xs text-slate-500">
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline hover:text-indigo-400">Hämta nyckel här</a>. Nyckeln sparas endast i din webbläsare.
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                            <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Exportera Data
+                            </h3>
+                            <p class="text-slate-400 text-sm mb-4">Spara ner en kopia av alla dina inlägg. Bra att göra om du ska byta mobil eller rensa webbhistorik.</p>
+                            <button onclick="app.exportData()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 px-4 rounded-xl transition-colors font-medium">
+                                Ladda ner backup (.txt)
+                            </button>
+                        </div>
+
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                            <h3 class="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Importera Data
+                            </h3>
+                            <p class="text-slate-400 text-sm mb-4">Återställ inlägg från en tidigare sparad backup-fil. Detta skriver över nuvarande data.</p>
+                            <button onclick="document.getElementById('importInput').click()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 px-4 rounded-xl transition-colors font-medium">
+                                Välj fil att ladda upp
+                            </button>
+                        </div>
+                        
+                        <div class="mt-8 text-center">
+                            <p class="text-xs text-slate-600">All data sparas lokalt i din webbläsare.<br>Ingenting skickas till någon server (förutom till Google när du använder AI-knappen).</p>
+                        </div>
+                    </div>
+                `;
+            },
+
+            exportData() {
+                // Save as .txt with text/plain MIME type for better mobile compatibility
+                const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(JSON.stringify(this.data));
+                const downloadAnchorNode = document.createElement('a');
+                const dateStr = new Date().toISOString().split('T')[0];
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `inventering_backup_${dateStr}.txt`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            },
+
+            handleImport(input) {
+                const file = input.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        // Basic validation: Check if it looks like an object
+                        if (typeof importedData === 'object' && importedData !== null) {
+                            if(confirm("Detta kommer att ersätta alla nuvarande inlägg med datan från filen. Är du säker?")) {
+                                this.data = importedData;
+                                this.saveData();
+                                this.showToast("Data återställd!");
+                                this.navigate('history');
+                            }
+                        } else {
+                            alert("Filen verkar inte vara en giltig backup.");
+                        }
+                    } catch (err) {
+                        alert("Kunde inte läsa filen. Se till att det är en giltig backup-fil (.txt eller .json).");
+                        console.error(err);
+                    }
+                    // Clear input so same file can be selected again if needed
+                    input.value = '';
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
